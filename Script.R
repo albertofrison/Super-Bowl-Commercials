@@ -1,3 +1,5 @@
+
+# INTRODUCTION ------------------------------------------------------------
 # Recommend a data-driven strategy for the Maven Motors Super Bowl spot, and present it in the form of a single page report or dashboard.
 # https://www.mavenanalytics.io/blog/maven-super-bowl-challenge
 
@@ -11,25 +13,45 @@
 # Finalists will be chosen by the Maven team based on insights, creativity, design, visualizations, and overall storytelling ability.
 # The winner will be selected from the finalist pool by the Maven team, via live voting.
 
+
+# LIBRARIES ---------------------------------------------------------------
 #1. LOAD NECESSARY LIBRARIES
-library (tidyverse)
 
+
+
+
+
+# LOAD DATA ---------------------------------------------------------------
 #2. LOAD DATA
-data <- read.csv(file = "data/superbowl_commercials.csv")
 
+
+# FIXING ERRORS IN DATA ---------------------------------------------------
+#2.1 TV VIEWERS IN https://superbowl-ads.com/2014-budweiser-puppy-love/ IS NOT CORRECT AS IT REPORTS A DIFFERENT NUMBER RESPECT ALL OTHER 2014 VIDEOS
+
+
+
+#2.2 CREATING SOME NEW VARIABLES()
+head(data)
+
+
+
+
+
+# ANALYSIS ----------------------------------------------------------------
 #3. ANALYSIS
-
 # TV.Viewers
-data %>%
-  ggplot (aes (x= as.factor(Year), y = TV.Viewers)) +
-  geom_jitter()
+
+
 # It seems that TV.Viewers is more function of something else and not an inherent effect of the qualities of each year TV spot
 # One strange outlier in 2014 - https://superbowl-ads.com/2014-budweiser-puppy-love/
 
+
+
 # Youtube.Views
 data %>%
-  ggplot (aes (x= as.factor(Year), y = Youtube.Views)) +
-  geom_jitter()
+  ggplot (aes (x= Estimated.Cost, y = Youtube.Views, color = Brand, size = YT_likes_to_views)) +
+  geom_point () +
+  scale_y_log10()
 # You Tube views seems more interesting, there is an outlier in 2012 - https://superbowl-ads.com/2012-doritos-sling-baby/
 
 # Youtube.Likes
@@ -39,63 +61,38 @@ data %>%
 # You Tube Likes seems more interesting, there is an outlier in 2012 - https://superbowl-ads.com/2012-doritos-sling-baby/
 
 data %>%
-  ggplot (aes (x= Youtube.Views, y = Youtube.Likes)) +
-  geom_point() 
+  #filter (Youtube.Views <10^7) %>%         #filtering out the Outlier
+  ggplot (aes (x= Estimated.Cost, y = Youtube.Views, color = Brand, size = YT_likes_to_views)) +
+  geom_point(alpha = .4) +
+  scale_color_brewer(palette = "Paired") +
+  scale_y_log10() 
+  #coord_flip()
+# Cost does not explain YT views neither likes to views
 
-# let's try to mesure a views to likes ratio and see how it goes
-data <- data %>%
-  mutate (likes_to_views = Youtube.Likes/Youtube.Views)
-
-
-
-data %>%
-  filter (Youtube.Views < 10^7) %>%
-  ggplot (aes (x= Youtube.Views, y = likes_to_views)) +
-  geom_point() 
-
-
-hist (data$likes_to_views)
-summary(data$likes_to_views)
-
-hist (data$Estimated.Cost)
-summary(data$Estimated.Cost)
-
-
-head (data)
-
-nrow(data)
-
-summary(data$TV.Viewers)
-summary(data$Youtube.Views)
-summary(data$Youtube.Likes)
-
-hist(data$Youtube.Views)
-
-data <- data %>%
-  filter (!is.na(likes_to_views)) %>%  
-  mutate (total_points = (Youtube.Views + Youtube.Likes / mean (likes_to_views)))
-
-
-data %>%
-  #filter (total_points > 10^5) %>%
-  ggplot (aes (x = as.factor (Year), y = Youtube.Views, fill = Brand)) +
-  geom_bar(stat = "identity") 
-
-
+head(data2)
 # developing some grouped statistical data
 data2 <- data %>%
   group_by (Brand) %>%
+  filter (!is.na(Youtube.Views) & !is.na(Youtube.Likes)) %>%
   summarize (n_spots = n(), 
-             avg_cost = sum(Estimated.Cost)/n_spots,                             #average cost of TV spot
-             avg_views = sum(Youtube.Views)/n_spots,                             #average view in YouTube  
+             avg_cost = mean(Estimated.Cost),                                    #average cost of TV spot
+             avg_views = mean(Youtube.Views),                                    #average view in YouTube  
              avg_likes_per_view = sum(Youtube.Likes)/sum(Youtube.Views),         #average likes per view ratio
-             avg_lenght = sum(Length)/n_spots,                                   #average lenght of video
+             avg_lenght = mean(Length),                                          #average lenght of video
              avg_view_per_1M_dollar = avg_views/avg_cost)                        #average views per 1M$ spot
+
+head(data2)
 
 # average YT views per spot VS average cost of the TV spot
 data2 %>%
   ggplot (aes (x = avg_cost, y = avg_views, size = avg_likes_per_view, color = as.factor(Brand))) +
+  geom_point() +
+  scale_color_brewer(palette = "Set3")
+
+data2 %>%
+  ggplot (aes (x = avg_view_per_1M_dollar, y = avg_likes_per_view, size = avg_lenght, color = as.factor(Brand))) +
   geom_point() 
+
 
 # it does not look that Auto OEM work well with Number of Views on YT per $ spent
 data2 %>%
@@ -104,7 +101,7 @@ data2 %>%
 
 # engagement of users (likes per view) - KIA does quite well (2nd place) and Hyundayi is not too far away % speaking
 data2 %>%
-  ggplot (aes (x = reorder(Brand, -avg_likes_per_view), y = avg_likes_per_view )) +
+  ggplot (aes (x = reorder(Brand, -avg_likes_per_view), y = avg_likes_per_view)) +
   geom_bar(stat = "identity") 
 
 # finally, total views 
@@ -113,19 +110,103 @@ data2 %>%
   geom_bar(stat = "identity") 
 
 
-head (data2)
-summary(data$total_points)
-hist (data$total_points)
 
-hist (data$Youtube.Likes)
+# FOCUS ON AUTO OEMs ------------------------------------------------------
+# FOCUS ON TOYOTA, HYUNDAI AND KIA
+# developing some grouped statistical data
+data3 <- data %>%
+  filter (Brand %in% c("Toyota", "Hyundai", "Kia")) %>%
+  mutate (likes_per_view = Youtube.Likes / Youtube.Views,         #likes per view ratio
+          view_per_1M_dollar = Youtube.Views / Estimated.Cost)    #views per 1M$ spot
 
-plot (data$Estimated.Cost, data$TV.Viewers)
 
-plot (data$TV.Viewers, data$Youtube.Views)
+# average YT views per spot VS average cost of the TV spot
+data3 %>%
+  ggplot (aes (x = Estimated.Cost, y = Youtube.Views, size = likes_per_view, color = as.factor(Brand))) +
+  geom_point() 
 
-plot (data$Estimated.Cost, data$Youtube.Views)
 
+
+
+
+
+
+
+
+
+##FOCUS ON ECONOMIC SECTOR
+data4 <- data %>%
+  group_by (econ_sector) %>%
+  filter (!is.na(Youtube.Views) & !is.na(Youtube.Likes)) %>%
+  summarize (n_spots = n(), 
+             avg_cost = mean(Estimated.Cost),                                    #average cost of TV spot
+             avg_views = mean(Youtube.Views),                                    #average view in YouTube  
+             avg_likes_per_view = sum(Youtube.Likes)/sum(Youtube.Views),         #average likes per view ratio
+             avg_lenght = mean(Length),                                          #average lenght of video
+             avg_view_per_1M_dollar = avg_views/avg_cost)                        #average views per 1M$ spot
+
+
+data4 %>%
+  ggplot (aes (x = reorder(econ_sector, -avg_likes_per_view), y = avg_likes_per_view, fill = econ_sector)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Soft Drinks" = "grey",
+                               "Cars" = "red",
+                               "Sports" = "grey",
+                               "Beers" = "grey",
+                               "Chips" = "grey",
+                               "Online Investments" = "grey"))
+
+data4 %>%
+  ggplot (aes (x = reorder(econ_sector, -avg_view_per_1M_dollar), y = avg_view_per_1M_dollar, fill = econ_sector)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Soft Drinks" = "grey",
+                               "Cars" = "red",
+                               "Sports" = "grey",
+                               "Beers" = "grey",
+                               "Chips" = "grey",
+                               "Online Investments" = "grey"))
+
+data4 %>%
+  ggplot (aes (x = reorder(econ_sector, -avg_cost), y = avg_cost, fill = econ_sector)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Soft Drinks" = "grey",
+                               "Cars" = "red",
+                               "Sports" = "grey",
+                               "Beers" = "grey",
+                               "Chips" = "grey",
+                               "Online Investments" = "grey"))
+
+
+data4 %>%
+  ggplot (aes (x = reorder(econ_sector, -avg_views), y = avg_views, fill = econ_sector)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Soft Drinks" = "grey",
+                               "Cars" = "red",
+                               "Sports" = "grey",
+                               "Beers" = "grey",
+                               "Chips" = "grey",
+                               "Online Investments" = "grey"))
+
+
+
+
+
+
+
+
+
+# FOCUS ON BOOLEAN PARAMETERS ---------------------------------------------
+
+# 
 data %>%
-  ggplot (aes (x= as.factor(Year), y = TV.Viewers))+
-  geom_boxplot()+
-  geom_point()
+  filter (!is.na(Youtube.Views)) %>%
+  group_by(Length) %>%
+  summarize (views = mean (Youtube.Views)) %>%
+  ggplot (aes (x= as.factor(Length), y = views)) +
+  geom_point(size = 2) +
+  scale_y_log10() +
+  #facet_grid(~ econ_sector) +
+  #scale_color_manual (values = c("red", "black"))+
+  theme (axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position = "")
+
+head(data)

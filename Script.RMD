@@ -1,0 +1,111 @@
+---
+title: "Super Bowl ADs (2022 Mavenanalytics Challenge)"
+author: "Alberto Frison"
+date: "19/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo= FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#load libraries
+library (tidyverse)
+library(gridExtra)
+
+#load dataset
+data_aux <- read.csv(file = "data/superbowl_commercials.csv")
+
+#fixing errors in the dataset
+#number of TV views must be equal in each Superbowl Year
+data_aux[which(data_aux$Superbowl.Ads.Link == "https://superbowl-ads.com/2014-budweiser-puppy-love/"),]$TV.Viewers <- 112.19
+
+#load the anaysis dataset into a new dataframe
+data <- data_aux %>%
+  select (-Superbowl.Ads.Link, -Youtube.Link)
+
+head(data)
+
+#calculation of some new variables useful for the analysis
+#LIKES TO VIEW RATIO AND VIEWS PER DOLLAR RATIO
+data <- data %>%
+  mutate (YT_likes_to_views = Youtube.Likes/Youtube.Views,
+          YT_views_per_dollar = Youtube.Views/(Estimated.Cost*10^6),
+          TV_views_per_dollar = TV.Viewers/Estimated.Cost)
+
+# ATTRIBUTION TO ECONOMIC SECTOR, BASED ON BRAND NAME
+data <- data %>%
+  mutate (econ_sector = case_when(
+                          Brand %in% c("Coca-Cola", "Pepsi") ~ "Soft Drinks",
+                          Brand %in% c("Bud Light", "Budweiser") ~ "Beers",
+                          Brand %in% c("Hyundai", "Kia", "Toyota") ~ "Cars",
+                          Brand == "E-Trade" ~ "Online Investments",
+                          Brand == "Doritos" ~ "Chips",
+                          Brand == "NFL" ~ "Sports",
+                          TRUE ~ "Others"))
+```
+## Challenge Introduction
+Recommend a data-driven strategy for the Maven Motors Super Bowl spot, and present it in the form of a single page report or dashboard.
+
+## ADs viewers on TV, Youtube and related estimated cost
+TV is still a very important channel in terms of watching volumes but the number of viewers started decreasing since 2015. In the meantime AD $ spend continued to increase. In addition, it cannot be said - from this data at least - how many times the same spot has been watched in TV in total as just the one airing done during the Super Bowl is showed here. In the other hand, the opportunity granted by online channels such as Youtube in terms of marketing analysis of customer reactions (likes, shares, comments) is very useful to asses  what customers like or not.
+
+```{r xxxxx, echo=FALSE, fig.height = 7, fig.width = 10}
+p1 <- data %>%
+  group_by(Year) %>%
+  summarize (TV_Viewers = mean(TV.Viewers)) %>%
+  ggplot () +
+  geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = TV_Viewers), stat = "identity", fill = "green") +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
+    subtitle = "",
+    caption = "",
+    x = "",
+    y= "TV viewers (M)") 
+
+p2 <- data %>%
+  group_by(Year) %>%
+  summarize (AVG_Spend = mean (Estimated.Cost)) %>%
+  ggplot () +
+  geom_point(aes(x = as.factor(substr(as.character(Year),3,4)), y = AVG_Spend), color = "red") +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
+    subtitle = "",
+    caption = "",
+    x = "Year",
+    y= "Avegage Spend ($M)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p3 <- data %>%
+  group_by(Year) %>%
+  summarize (YT_Viewers = sum(Youtube.Views)/10^6) %>%
+  ggplot () +
+  geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = YT_Viewers), stat = "identity", fill = "blue") +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
+    subtitle = "",
+    caption = "",
+    x = "",
+    y= "YouTube viewers (M)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p4 <- data %>%
+  group_by(Year) %>%
+  summarize (YT_Likes = sum(Youtube.Likes)/1000) %>%
+  ggplot () +
+  geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = YT_Likes), stat = "identity", fill = "brown") +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
+    subtitle = "",
+    caption = "",
+    x = "",
+    y= "YouTube Likes (k)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+grid.arrange(p1,p2,p3,p4, nrow = 2)
+
+```
