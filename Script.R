@@ -41,7 +41,6 @@ head(data)
 #3. ANALYSIS
 # TV.Viewers
 
-
 # It seems that TV.Viewers is more function of something else and not an inherent effect of the qualities of each year TV spot
 # One strange outlier in 2014 - https://superbowl-ads.com/2014-budweiser-puppy-love/
 
@@ -75,34 +74,51 @@ data2 <- data %>%
   group_by (Brand) %>%
   filter (!is.na(Youtube.Views) & !is.na(Youtube.Likes)) %>%
   summarize (n_spots = n(), 
-             avg_cost = mean(Estimated.Cost),                                    #average cost of TV spot
-             avg_views = mean(Youtube.Views),                                    #average view in YouTube  
-             avg_likes_per_view = sum(Youtube.Likes)/sum(Youtube.Views),         #average likes per view ratio
-             avg_lenght = mean(Length),                                          #average lenght of video
-             avg_view_per_1M_dollar = avg_views/avg_cost)                        #average views per 1M$ spot
+             tot_views = as.integer(sum(Youtube.Views)),                                     #TOTAL view in YouTube
+             avg_views = as.integer(mean(Youtube.Views)),                                     #average view in YouTube
+             tot_cost =  as.integer(sum(Estimated.Cost),1),                                    #average cost of TV spot
+             avg_cost =  round(mean(Estimated.Cost),1),                                    #average cost of TV spot
+             tot_likes = as.integer(sum(Youtube.Likes)),
+             avg_likes_per_100k_view = as.integer((sum(Youtube.Likes)/sum(Youtube.Views)*100000)),         #average likes per view ratio
+             avg_lenght = round(mean(Length),1),                                          #average lenght of video
+             avg_view_per_1k_dollar = as.integer((avg_views/(avg_cost*10^3))))                        #average views per 1M$ spot
 
-head(data2)
+data2 <- data2[order(-data2$tot_views),]
+data2
 
 # average YT views per spot VS average cost of the TV spot
 data2 %>%
-  ggplot (aes (x = avg_cost, y = avg_views, size = avg_likes_per_view, color = as.factor(Brand))) +
+  ggplot (aes (x = avg_cost, y = avg_views, size = avg_likes_per_100k_view, color = as.factor(Brand), label = Brand)) +
   geom_point() +
-  scale_color_brewer(palette = "Set3")
-
-data2 %>%
-  ggplot (aes (x = avg_view_per_1M_dollar, y = avg_likes_per_view, size = avg_lenght, color = as.factor(Brand))) +
-  geom_point() 
+  geom_text(size = 4, color = "black") +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    title = "YouTube Views vs Avg Spend for AD by Brand",
+    subtitle = "Toyota, Kia and Hyundai have low views coupled with important spend",
+    caption = "",
+    x = "Average Spend per Ad",
+    y = "Average YouTube Views per AD") 
 
 
 # it does not look that Auto OEM work well with Number of Views on YT per $ spent
 data2 %>%
-  ggplot (aes (x = reorder(Brand, -avg_view_per_1M_dollar), y = avg_view_per_1M_dollar )) +
-  geom_bar(stat = "identity") 
+  ggplot (aes (x = reorder(Brand, -avg_view_per_1k_dollar), y = avg_view_per_1k_dollar )) +
+  geom_bar(stat = "identity") +
+  geom_text (aes (label = avg_view_per_1k_dollar), vjust = -0.5) +
+  scale_color_brewer(palette = "Paired") +
+  labs (
+    title = "YouTube Views for each 1k$ of ADs Spend by Brand",
+    subtitle = "Toyota, Kia and Hyundai make ADs that once in YouTube yield very low returns", #get a low return of their $ in terms of YouTube views
+    caption = "Yes that's right, to get 5 Views in Youtube Kia has to spend 1k USD",
+    x = "Brand",
+    y = "Views per 1k$ in AD Spend")
 
 # engagement of users (likes per view) - KIA does quite well (2nd place) and Hyundayi is not too far away % speaking
 data2 %>%
-  ggplot (aes (x = reorder(Brand, -avg_likes_per_view), y = avg_likes_per_view)) +
+  ggplot (aes (x = reorder(Brand, -avg_likes_per_100k_view), y = avg_likes_per_100k_view)) +
   geom_bar(stat = "identity") 
+
+
 
 # finally, total views 
 data2 %>%

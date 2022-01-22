@@ -46,7 +46,8 @@ data <- data %>%
 ## Challenge Introduction
 Recommend a data-driven strategy for the Maven Motors Super Bowl spot, and present it in the form of a single page report or dashboard.
 
-## ADs viewers on TV, Youtube and related estimated cost
+## Part 1: Analysis
+### ADs viewers on TV, Youtube and related estimated cost
 TV is still a very important channel in terms of watching volumes but the number of viewers started decreasing since 2015. In the meantime AD $ spend continued to increase. In addition, it cannot be said - from this data at least - how many times the same spot has been watched in TV in total as just the one airing done during the Super Bowl is showed here. In the other hand, the opportunity granted by online channels such as Youtube in terms of marketing analysis of customer reactions (likes, shares, comments) is very useful to asses  what customers like or not.
 
 ```{r xxxxx, echo=FALSE, fig.height = 7, fig.width = 10}
@@ -57,8 +58,8 @@ p1 <- data %>%
   geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = TV_Viewers), stat = "identity", fill = "green") +
   scale_color_brewer(palette = "Paired") +
   labs (
-    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
-    subtitle = "",
+    title = "Viewers watching the Superball on TV per year",
+    subtitle = "TV Viewers are decreasing but still yielded ~90M viewers in 2021",
     caption = "",
     x = "",
     y= "TV viewers (M)") 
@@ -70,8 +71,8 @@ p2 <- data %>%
   geom_point(aes(x = as.factor(substr(as.character(Year),3,4)), y = AVG_Spend), color = "red") +
   scale_color_brewer(palette = "Paired") +
   labs (
-    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
-    subtitle = "",
+    title = "Average cost of ADs per Year",
+    subtitle = "Cost of airing one AD quadrupled since early 2000s",
     caption = "",
     x = "Year",
     y= "Avegage Spend ($M)") +
@@ -81,11 +82,11 @@ p3 <- data %>%
   group_by(Year) %>%
   summarize (YT_Viewers = sum(Youtube.Views)/10^6) %>%
   ggplot () +
-  geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = YT_Viewers), stat = "identity", fill = "blue") +
+  geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = YT_Viewers) , stat = "identity", fill = "blue") +
   scale_color_brewer(palette = "Paired") +
   labs (
-    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
-    subtitle = "",
+    title = "YTD Youtube Views of each spot by airing year",
+    subtitle = "Data shows that 2012 is affected by one outlier (Doritos)",
     caption = "",
     x = "",
     y= "YouTube viewers (M)") +
@@ -98,14 +99,15 @@ p4 <- data %>%
   geom_bar(aes(x = as.factor(substr(as.character(Year),3,4)), y = YT_Likes), stat = "identity", fill = "brown") +
   scale_color_brewer(palette = "Paired") +
   labs (
-    #title = "Super Bowl TV Viewers vs ADs Average Spending per Year",
-    subtitle = "",
+    title = "YTD Youtube Likes of each spot by airing year",
+    subtitle = "Data shows that 2012 is affected by one outlier (Doritos)",
     caption = "",
     x = "",
     y= "YouTube Likes (k)") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
+#plots the 4 chars
 grid.arrange(p1,p2,p3,p4, nrow = 2)
 
 ```
